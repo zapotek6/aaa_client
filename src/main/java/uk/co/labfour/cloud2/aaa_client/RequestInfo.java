@@ -95,8 +95,10 @@ public class RequestInfo {
 		return syncResponse;
 	}
 
-	public void setSyncResponse(CountDownLatch syncResponse) {
-		this.syncResponse = syncResponse;
+	public CountDownLatch setSyncResponse() {
+		CountDownLatch sync = new CountDownLatch(1);
+		this.syncResponse = sync;
+		return sync;
 	}
 	
 	
