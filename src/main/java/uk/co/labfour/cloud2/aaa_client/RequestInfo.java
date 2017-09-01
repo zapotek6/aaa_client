@@ -4,6 +4,7 @@ import java.util.concurrent.CountDownLatch;
 
 import uk.co.labfour.cloud2.protocol.BaseRequest;
 import uk.co.labfour.cloud2.protocol.BaseResponse;
+import uk.co.labfour.error.BException;
 import uk.co.labfour.net.transport.IGenericTransport;
 
 public class RequestInfo {
@@ -16,7 +17,6 @@ public class RequestInfo {
 	String resourceUuid;
 	String action;
 	CountDownLatch syncResponse = null;
-	
 	
 	public RequestInfo(BaseRequest request, String apiKey, String resourceUuid, String action, IGenericTransport transport, IService service) {
 		this.request = request;
@@ -101,6 +101,17 @@ public class RequestInfo {
 		return sync;
 	}
 	
+	public void waitCompletion() throws BException {
+		if (null == syncResponse) {
+			throw new BException("You cannot wait an async RequestInfo");
+		}
+		
+		try {
+			syncResponse.await();
+		} catch (InterruptedException e) {
+			throw new BException(e);
+		}
+	}
 	
 	
 }

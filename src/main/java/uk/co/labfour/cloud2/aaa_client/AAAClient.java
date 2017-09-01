@@ -11,10 +11,7 @@ import uk.co.labfour.logger.MyLogger;
 import uk.co.labfour.logger.MyLoggerFactory;
 import uk.co.labfour.net.transport.IGenericTransport;
 
-public class AAAClient {
-	public static final String AAA_CONSUMER = "aaa";
-	public static final String AAA_AUTHORIZATOR_API = "aaa.authorizator";
-	public static final String AAA_AUTHENTICATOR_API = "aaa.authenticator";
+public class AAAClient implements IAAAClient {
 	MyLogger log = MyLoggerFactory.getInstance();
 	Long reqId = 0L;
 	ConcurrentHashMap<String, RequestInfo> waitAuthz = new ConcurrentHashMap<String, RequestInfo>();
@@ -56,6 +53,8 @@ public class AAAClient {
 					svcResponse.setError(response.getErrCode(), response.getErrDescription());
 				}
 				
+				// if the request is async send the response using the transport
+				// if the reuqest is sync set in the request info the response and the unblock (see CountDownLatch in RequestInfo) the wainting thread
 				if (null == requestInfo.getSyncResponse()) {
 					transport.reply(svcResponse);
 				} else {
