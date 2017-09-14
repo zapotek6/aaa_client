@@ -95,10 +95,10 @@ public class RequestInfo {
 		return syncResponse;
 	}
 
-	public CountDownLatch setSyncResponse() {
-		CountDownLatch sync = new CountDownLatch(1);
-		this.syncResponse = sync;
-		return sync;
+	public void setSyncResponse() {
+		if (null == syncResponse) {
+			syncResponse = new CountDownLatch(1);
+		}
 	}
 	
 	public void waitCompletion() throws BException {
