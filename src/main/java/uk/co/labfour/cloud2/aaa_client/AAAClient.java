@@ -1,8 +1,5 @@
 package uk.co.labfour.cloud2.aaa_client;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
 import uk.co.labfour.bjson.BJsonException;
 import uk.co.labfour.bjson.BJsonObject;
 import uk.co.labfour.cloud2.aaa.common.AAAConstants;
@@ -12,21 +9,26 @@ import uk.co.labfour.cloud2.aaa.common.Utility;
 import uk.co.labfour.cloud2.microservice.ServiceError;
 import uk.co.labfour.cloud2.protocol.BaseRequest;
 import uk.co.labfour.cloud2.protocol.BaseResponse;
+import uk.co.labfour.error.BEarer;
 import uk.co.labfour.error.BException;
 import uk.co.labfour.logger.MyLogger;
 import uk.co.labfour.logger.MyLoggerFactory;
-import uk.co.labfour.net.transport.IGenericTransport;
+import uk.co.labfour.net.proto.mqtt.client.MqttMessage;
+import uk.co.labfour.net.transport.IGenericTransport2;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class AAAClient implements IAAAClient {
     MyLogger log = MyLoggerFactory.getInstance();
 	private Long reqId = 0L;
 	private final ConcurrentHashMap<String, RequestInfo> waitAuthz = new ConcurrentHashMap<>();
 	private final String replyTo;
-	private final IGenericTransport transport;
+    private final IGenericTransport2 transport;
 	private final long aaaTimeoutValue = AAAConstants.DEFAULT_AAA_TIMEOUT_VALUE;
 	private final TimeUnit aaaTimeoutTimeUnit = AAAConstants.DEFAULT_AAA_TIMEOUT_TIMEUNIT;
 
-	public AAAClient(IGenericTransport transport, String replyTo) {
+    public AAAClient(IGenericTransport2 transport, String replyTo) {
 		this.transport = transport;
 		this.replyTo = replyTo;
 	}
@@ -64,15 +66,12 @@ public class AAAClient implements IAAAClient {
         return reqId;
     }
 
-    private void send(BaseRequest request, IGenericTransport transport) throws BException {
-	    try {
-	        transport.send(request);
-        } catch (BException e) {
-            throw new BException("Transport error", ServiceError.INTERNAL_ERR);
-        }
+    private BEarer<MqttMessage> send(BaseRequest request, IGenericTransport2 transport) {
+        return transport.send(request);
+
     }
 
-    private void sendRequest(BaseRequest request, RequestInfo requestInfo, IGenericTransport transport) throws BException {
+    private void sendRequest(BaseRequest request, RequestInfo requestInfo, IGenericTransport2 transport) throws BException {
         long reqId = assignUniqueIdForCorrelation(request, requestInfo);
 
         enque(Long.toString(reqId), requestInfo);

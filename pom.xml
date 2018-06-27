@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>aaa_client</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -62,6 +62,10 @@
         <dependency>
             <groupId>uk.co.labfour.cloud2</groupId>
             <artifactId>transport</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>uk.co.labfour.net.proto.mqtt</groupId>
+            <artifactId>mqtt-client</artifactId>
         </dependency>
     </dependencies>
 

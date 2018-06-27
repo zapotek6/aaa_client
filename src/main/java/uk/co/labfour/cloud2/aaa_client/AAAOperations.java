@@ -1,7 +1,10 @@
 package uk.co.labfour.cloud2.aaa_client;
 
 import uk.co.labfour.bjson.BJsonException;
-import uk.co.labfour.cloud2.aaa.common.*;
+import uk.co.labfour.cloud2.aaa.common.AAAEntityOperationBuilder;
+import uk.co.labfour.cloud2.aaa.common.AAAEntityOperationsBuilder;
+import uk.co.labfour.cloud2.aaa.common.IAAAClient;
+import uk.co.labfour.cloud2.aaa.common.RequestInfo;
 import uk.co.labfour.cloud2.microservice.ServiceContext;
 import uk.co.labfour.cloud2.protocol.BaseRequest;
 import uk.co.labfour.cloud2.protocol.BaseResponse;
@@ -54,7 +57,11 @@ public class AAAOperations {
             throw new BException(e);
         }
 
-        RequestInfo requestInfo = new RequestInfo(registerUserRequest, serviceContext.getServiceApiKey(), serviceContext.getServiceUuidAsString(), "", serviceContext.getAaaTransport(), null);
+        RequestInfo requestInfo = new RequestInfo(registerUserRequest,
+                serviceContext.getServiceApiKey(),
+                serviceContext.getServiceUuidAsString(),
+                "",
+                serviceContext.getAaaTransport(), null);
         requestInfo.setSyncResponse();
 
         return  aaaClient.doCreateComplexEntity(requestInfo, serviceContext.getServiceApiKey());
