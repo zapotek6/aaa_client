@@ -1,11 +1,15 @@
 package uk.co.labfour.cloud2.aaa_client;
 
+import uk.co.labfour.bjson.BJsonDeSerializer;
+import uk.co.labfour.bjson.BJsonDeSerializerFactory;
 import uk.co.labfour.bjson.BJsonException;
 import uk.co.labfour.bjson.BJsonObject;
 import uk.co.labfour.cloud2.aaa.common.AAAConstants;
 import uk.co.labfour.cloud2.aaa.common.IAAAClient;
 import uk.co.labfour.cloud2.aaa.common.RequestInfo;
 import uk.co.labfour.cloud2.aaa.common.Utility;
+import uk.co.labfour.cloud2.aaa.common.model.AlexaOAuth2Token;
+import uk.co.labfour.cloud2.aaa.common.model.Token;
 import uk.co.labfour.cloud2.microservice.ServiceError;
 import uk.co.labfour.cloud2.protocol.BaseRequest;
 import uk.co.labfour.cloud2.protocol.BaseResponse;
@@ -18,6 +22,9 @@ import uk.co.labfour.net.transport.IGenericTransport2;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import static uk.co.labfour.cloud2.aaa.common.AAAConstants.TOKEN_FLD;
+import static uk.co.labfour.cloud2.aaa.common.AAAConstants.UUID_FLD;
 
 public class AAAClient implements IAAAClient {
     MyLogger log = MyLoggerFactory.getInstance();
@@ -106,7 +113,13 @@ public class AAAClient implements IAAAClient {
 
     private void addOperations(BaseRequest request, RequestInfo requestInfo) throws BException {
         try {
-            request.getPayload().put(AAAConstants.OPERATIONS_ARRAY_CONTAINER_FLD, requestInfo.getRequest().getPayload().getElementAsBJsonArray(AAAConstants.OPERATIONS_ARRAY_CONTAINER_FLD));
+            request
+                    .getPayload()
+                    .put(AAAConstants.OPERATIONS_ARRAY_CONTAINER_FLD,
+                            requestInfo
+                                    .getRequest()
+                                    .getPayload()
+                                    .getElementAsBJsonArray(AAAConstants.OPERATIONS_ARRAY_CONTAINER_FLD));
 
         } catch (BJsonException e) {
             throw new BException("Malformed input", ServiceError.CLIENT_ERR);
@@ -147,9 +160,165 @@ public class AAAClient implements IAAAClient {
         } catch(BException e) {
             return new BaseResponse(requestInfo.getRequest()).setError(e.getErrorCode(), e.getMessage());
         }
-
-
 	}
+
+    public BEarer<Token> doReadToken(RequestInfo requestInfo, String apiKey, String token) {
+
+        try {
+
+            BaseRequest authReq = Utility.createRequest(apiKey, AAAConstants.AAA_CONSUMER, AAAConstants.AAA_READ_TOKEN_API, replyTo);
+
+            prepareAndAddAuthzStuff(authReq, requestInfo);
+
+            authReq.getPayload().put(TOKEN_FLD, token);
+
+            sendRequest(authReq, requestInfo, transport);
+
+            BaseResponse response = waitRequestCompletion(requestInfo, authReq);
+
+            if (0 == response.getErrCode()) {
+                BJsonDeSerializer bJsonDeSerializer = BJsonDeSerializerFactory.getInstanceForMongoDB(false);
+
+                Token token1 = bJsonDeSerializer.fromJson(response.getPayload().getElementAsBJsonObject(TOKEN_FLD), Token.class);
+
+                return new BEarer<Token>()
+                        .setSuccess()
+                        .set(token1);
+            } else {
+                return BEarer.createGenericError(this, response.getErrDescription())
+                        .setCode(response.getErrCode());
+            }
+
+        } catch(BException e) {
+            return BEarer.createGenericError(this, e.getMessage())
+                    .setCode(e.getErrorCode());
+        } catch (BJsonException e) {
+            return BEarer.createGenericError(this, e.getMessage());
+        }
+    }
+
+
+
+    public BEarer<String> doObtainAlexaOAuth2Token(RequestInfo requestInfo, String apiKey, String token, String authorizationCode) {
+
+        try {
+
+            BaseRequest authReq = Utility.createRequest(apiKey, AAAConstants.AAA_CONSUMER, AAAConstants.AAA_OBTAIN_ALEXA_OAUTH2_TOKEN_API, replyTo);
+
+            prepareAndAddAuthzStuff(authReq, requestInfo);
+
+            authReq.getPayload().put("userToken", token);
+            authReq.getPayload().put("authorizationCode", authorizationCode);
+
+            sendRequest(authReq, requestInfo, transport);
+
+            BaseResponse response = waitRequestCompletion(requestInfo, authReq);
+
+            if (0 == response.getErrCode()) {
+                BJsonDeSerializer bJsonDeSerializer = BJsonDeSerializerFactory.getInstance(false);
+
+                //Token token1 = bJsonDeSerializer.fromJson(response.getPayload().getElementAsString(TOKEN_FLD), Token.class);
+
+                BEarer<String> alexaOAuth2TokenOp = response.getPayload().getElmAsString(TOKEN_FLD);
+
+                if (alexaOAuth2TokenOp.isOk()) {
+                    return new BEarer<String>()
+                            .setSuccess()
+                            .set(alexaOAuth2TokenOp.get());
+                } else {
+                    return BEarer.createGenericError(this, "invalid alexa oauth2 token")
+                            .setCode(500);
+                }
+
+            } else {
+                return BEarer.createGenericError(this, response.getErrDescription());
+            }
+
+        } catch(BException e) {
+            return BEarer.createGenericError(this, e.getMessage())
+                    .setCode(e.getErrorCode());
+        } catch (BJsonException e) {
+            return BEarer.createGenericError(this, e.getMessage());
+        }
+    }
+
+    public BEarer<String> doRefreshAlexaOAuth2Token(RequestInfo requestInfo, String apiKey, String token) {
+
+        try {
+
+            BaseRequest authReq = Utility.createRequest(apiKey, AAAConstants.AAA_CONSUMER, AAAConstants.AAA_REFRESH_ALEXA_OAUTH2_TOKEN_API, replyTo);
+
+            prepareAndAddAuthzStuff(authReq, requestInfo);
+
+            authReq.getPayload().put(TOKEN_FLD, token);
+
+            sendRequest(authReq, requestInfo, transport);
+
+            BaseResponse response = waitRequestCompletion(requestInfo, authReq);
+
+            if (0 == response.getErrCode()) {
+                BJsonDeSerializer bJsonDeSerializer = BJsonDeSerializerFactory.getInstance(false);
+
+                //Token token1 = bJsonDeSerializer.fromJson(response.getPayload().getElementAsString(TOKEN_FLD), Token.class);
+
+                BEarer<String> alexaOAuth2TokenOp = response.getPayload().getElmAsString(TOKEN_FLD);
+
+                if (alexaOAuth2TokenOp.isOk()) {
+                    return new BEarer<String>()
+                            .setSuccess()
+                            .set(alexaOAuth2TokenOp.get());
+                } else {
+                    return BEarer.createGenericError(this, "invalid alexa oauth2 token")
+                            .setCode(500);
+                }
+
+            } else {
+                return BEarer.createGenericError(this, response.getErrDescription());
+            }
+
+        } catch(BException e) {
+            return BEarer.createGenericError(this, e.getMessage())
+                    .setCode(e.getErrorCode());
+        } catch (BJsonException e) {
+            return BEarer.createGenericError(this, e.getMessage());
+        }
+    }
+
+    public BEarer<AlexaOAuth2Token> doReadAlexaOAuth2Token(RequestInfo requestInfo, String apiKey, String uuid) {
+
+        try {
+
+            BaseRequest authReq = Utility.createRequest(apiKey, AAAConstants.AAA_CONSUMER, AAAConstants.AAA_READ_ALEXA_OAUTH_TOKEN_API, replyTo);
+
+            prepareAndAddAuthzStuff(authReq, requestInfo);
+
+            authReq.getPayload().put(UUID_FLD, uuid);
+
+            sendRequest(authReq, requestInfo, transport);
+
+            BaseResponse response = waitRequestCompletion(requestInfo, authReq);
+
+            if (0 == response.getErrCode()) {
+                BJsonDeSerializer bJsonDeSerializer = BJsonDeSerializerFactory.getInstanceForMongoDB(false);
+
+                AlexaOAuth2Token token1 = bJsonDeSerializer.fromJson(response.getPayload().getElementAsBJsonObject(TOKEN_FLD), AlexaOAuth2Token.class);
+
+                return new BEarer<AlexaOAuth2Token>()
+                        .setSuccess()
+                        .set(token1);
+            } else {
+                return BEarer.createGenericError(this, response.getErrDescription())
+                        .setCode(response.getErrCode());
+            }
+
+        } catch(BException e) {
+            return BEarer.createGenericError(this, e.getMessage())
+                    .setCode(e.getErrorCode());
+        } catch (BJsonException e) {
+            return BEarer.createGenericError(this, e.getMessage());
+        }
+    }
+
 
 	private BaseResponse waitRequestCompletion(RequestInfo requestInfo, BaseRequest authReq) throws BException {
         requestInfo.waitCompletion(aaaTimeoutValue, aaaTimeoutTimeUnit);

@@ -1,6 +1,7 @@
 package uk.co.labfour.cloud2.aaa_client;
 
 import uk.co.labfour.bjson.BJsonException;
+import uk.co.labfour.bjson.BJsonObject;
 import uk.co.labfour.cloud2.aaa.common.AAAEntityOperationBuilder;
 import uk.co.labfour.cloud2.aaa.common.AAAEntityOperationsBuilder;
 import uk.co.labfour.cloud2.aaa.common.IAAAClient;
@@ -27,7 +28,14 @@ public class AAAOperations {
         AAAEntityOperationsBuilder operationsBuilder = new AAAEntityOperationsBuilder();
         operationsBuilder.add(createuserOperation);
 
-        return execute(serviceContext, operationsBuilder);
+        BJsonObject payload = new BJsonObject();
+        try {
+            payload.put(operationsBuilder.getObjectName(), operationsBuilder.build());
+        } catch (BJsonException e) {
+
+        }
+
+        return execute(serviceContext, payload);
     }
 
     public static BaseResponse createComplexEntityForDevice(ServiceContext serviceContext, String ownerUuid, String name, String description, String apiKey) throws BException {
@@ -43,21 +51,24 @@ public class AAAOperations {
         AAAEntityOperationsBuilder operationsBuilder = new AAAEntityOperationsBuilder();
         operationsBuilder.add(createuserOperation);
 
-        return execute(serviceContext, operationsBuilder);
-    }
-
-    private static BaseResponse execute(ServiceContext serviceContext, AAAEntityOperationsBuilder operationsBuilder) throws BException {
-        IAAAClient aaaClient = serviceContext.getAaaClient();
-
-        BaseRequest registerUserRequest = new BaseRequest();
-
+        BJsonObject payload = new BJsonObject();
         try {
-            registerUserRequest.getPayload().put(operationsBuilder.getObjectName(),operationsBuilder.build());
-        } catch(BJsonException e) {
-            throw new BException(e);
+            payload.put(operationsBuilder.getObjectName(), operationsBuilder.build());
+        } catch (BJsonException e) {
+
         }
 
-        RequestInfo requestInfo = new RequestInfo(registerUserRequest,
+        return execute(serviceContext, payload);
+    }
+
+    private static BaseResponse execute(ServiceContext serviceContext, BJsonObject payload) throws BException {
+        IAAAClient aaaClient = serviceContext.getAaaClient();
+
+        BaseRequest request = new BaseRequest();
+
+        request.setPayload(payload);
+
+        RequestInfo requestInfo = new RequestInfo(request,
                 serviceContext.getServiceApiKey(),
                 serviceContext.getServiceUuidAsString(),
                 "",
@@ -66,5 +77,8 @@ public class AAAOperations {
 
         return  aaaClient.doCreateComplexEntity(requestInfo, serviceContext.getServiceApiKey());
     }
+
+
+
 
 }
